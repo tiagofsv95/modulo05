@@ -7,10 +7,7 @@ export const Form = styled.form`
   height: 30px;
 
   input: {
-    flex: 1;
-    border: 1px solid #eee;
     padding: 10px 15px;
-    border-radius: 4px;
     font-size: 16px;
   }
 `;
@@ -68,9 +65,15 @@ export const List = styled.ul`
       border-top: 1px solid #eee;
     }
 
-    a {
-      color: #7159c1;
-      text-decoration: none;
+    div {
+      display: flex;
+      align-items: center;
+
+      a {
+        color: #7159c1;
+        text-decoration: none;
+        padding-right: 20px;
+      }
     }
   }
 `;

@@ -1,5 +1,7 @@
+/* eslint-disable no-alert */
+/* eslint-disable no-throw-literal */
 import React, { Component } from 'react';
-import { FaGithubAlt, FaPlus, FaSpinner } from 'react-icons/fa';
+import { FaGithubAlt, FaPlus, FaSpinner, FaTrashAlt } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
 import api from '../../services/api';
@@ -13,6 +15,7 @@ export default class Main extends Component {
     newRepo: '',
     repositories: [],
     loading: false,
+    error: false,
   };
 
   componentDidMount() {
@@ -32,49 +35,88 @@ export default class Main extends Component {
   }
 
   handleInputChange = e => {
-    this.setState({ newRepo: e.target.value });
+    this.setState({ newRepo: e.target.value, loading: false, error: false });
   };
 
   handleSubmit = async e => {
     e.preventDefault();
 
-    this.setState({ loading: true });
+    this.setState({ loading: true, error: false });
 
-    const { newRepo, repositories } = this.state;
+    try {
+      const { newRepo, repositories } = this.state;
 
-    const response = await api.get(`/repos/${newRepo}`);
+      if (newRepo === '') throw 'Digite um repositório';
 
-    const data = {
-      name: response.data.full_name,
-    };
+      const hasRepo = repositories.find(
+        repository => repository.name === newRepo
+      );
 
-    this.setState({
-      repositories: [...repositories, data],
-      newRepo: '',
-      loading: false,
-    });
+      if (hasRepo) {
+        throw 'Repositório duplicado';
+      }
+
+      const response = await api.get(`/repos/${newRepo}`);
+
+      const data = {
+        name: response.data.full_name,
+      };
+
+      this.setState({
+        repositories: [...repositories, data],
+        newRepo: '',
+        loading: false,
+        error: false,
+      });
+    } catch (error) {
+      // eslint-disable-next-line eqeqeq
+      if (error == 'Error: Request failed with status code 404') {
+        alert('Repositório não encontrado. Digite um repositorio válido');
+      } else {
+        alert(error);
+      }
+
+      this.setState({ error: true });
+    } finally {
+      this.setState({ loading: false });
+    }
   };
 
+  async handleDelete(repository) {
+    // eslint-disable-next-line react/destructuring-assignment
+    const repositories = this.state.repositories.filter(
+      localStorageRepository => localStorageRepository.name !== repository
+    );
+
+    if (repositories) {
+      this.setState({ repositories });
+    }
+  }
+
   render() {
-    const { newRepo, repositories, loading } = this.state;
+    const { newRepo, repositories, loading, error } = this.state;
 
     return (
       <Container>
         <h1>
-          <FaGithubAlt />
+          <FaGithubAlt size={30} />
           Repositórios
         </h1>
 
-        <Form onSubmit={this.handleSubmit}>
+        <Form onSubmit={this.handleSubmit} error={error}>
           <input
-            style={{ flex: 1 }}
+            style={{
+              flex: 1,
+              border: `1px solid ${error ? '#ff6b6b' : '#eee'}`,
+              borderRadius: '5px',
+            }}
             type="text"
             placeholder="Adicionar repositório"
             value={newRepo}
             onChange={this.handleInputChange}
           />
 
-          <SubmitButton loading={loading}>
+          <SubmitButton loading={loading ? 1 : undefined}>
             {loading ? (
               <FaSpinner color="#FFF" size={14} />
             ) : (
@@ -87,9 +129,16 @@ export default class Main extends Component {
           {repositories.map(repository => (
             <li key={repository.name}>
               <span>{repository.name}</span>
-              <Link to={`/repository/${encodeURIComponent(repository.name)}`}>
-                Detalhes
-              </Link>
+              <div>
+                <Link to={`/repository/${encodeURIComponent(repository.name)}`}>
+                  Detalhes
+                </Link>
+                <FaTrashAlt
+                  color="#7159c1"
+                  size={16}
+                  onClick={() => this.handleDelete(repository.name)}
+                />
+              </div>
             </li>
           ))}
         </List>
